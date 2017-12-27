@@ -13,6 +13,13 @@
         #messageArea{
             display: none;
         }
+        .private{
+            font-style: italic;
+            color: darkblue;
+        }
+        .error{
+            color:red;
+        }
     </style>
 </head>
 <body>
@@ -66,7 +73,9 @@
             e.preventDefault();
             console.log('submitted');
 
-            socket.emit('send message',$message.val());
+            socket.emit('send message',$message.val(),function (data) {
+                $chat.app("<div class='error'>"+data+"</div>");
+            });
             $message.val('');
        });
        socket.on('new message',function (data) {
@@ -90,6 +99,10 @@
                  html +="<li class='list-group-item'>"+data[i]+"</li>";
             }
             $users.html(html);
+        });
+        socket.on('privatechat',function (data) {
+            alert(data);
+            $chat.append("<div class='private'><strong>"+ data.name +" :</strong> "+data.msg+"</div>");
         });
     });
 </script>

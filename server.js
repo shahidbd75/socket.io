@@ -27,10 +27,28 @@ io.sockets.on('connection',function (socket) {
         console.log('Disconnected: %s sockets connected', connections.length);
     });
 
-    socket.on('send message',function (data) {
+    socket.on('send message',function (data,callback) {
         var message = data.trim();
-
-        io.sockets.emit('new message',{msg: data,user: socket.username});
+        if(message.substring(0,2)==='/w'){
+            message = message.substring(2);
+            var spaceIndex = message.indexOf('>');
+            if(spaceIndex !== -1){
+                var user = message.substring(0,spaceIndex);
+                message = message.substring(spaceIndex + 1);
+                console.log(users);
+                if(user in users){
+                    console.log(user in users);
+                    io.to(users[user]).emit('privatechat',{msg:message,name:user});
+                    console.log('private message start');
+                } else{
+                    callback('User not valid');
+                }
+            } else{
+                callback('Please enter message for private chat');
+            }
+        } else{
+            io.sockets.emit('new message',{msg: message,user: socket.username});
+        }
     });
 
     //new user
