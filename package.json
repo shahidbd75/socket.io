@@ -11,5 +11,8 @@
   "dependencies": {
     "socket.io":"*",
     "express":"*"
+  },
+  "scripts":{
+    "start": "node server.js"
   }
 }

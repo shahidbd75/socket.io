@@ -1,10 +1,11 @@
 var express = require("express");
 var app = express();
 
-var server = require('http').createServer(app);
-var io = require('socket.io').listen(server);
+app.use('/app', express.static(__dirname+'/app'));
 
-var users =[];
+var server = require('http').createServer(app);
+//var users =[];
+var userOnline =[];
 var connections =[];
 
 server.listen(process.env.PORT || 3000);
@@ -14,14 +15,24 @@ app.get('/',function (req,res) {
     res.sendFile(__dirname + '/index.html');
 });
 
-io.sockets.on('connection',function (socket) {
+// Socket Implementation
+var io = require('socket.io').listen(server);
+//connect
+io.sockets.on('connect', onConnect);
+
+
+
+function onConnect(socket) {
     connections.push(socket);
     console.log('Connected: %s sockets connected', connections.length);
 
     // Disconnect
     socket.on('disconnect',function (data) {
         //if(!socket.username) return;
-        delete users[socket.username]; //users.splice(users.indexOf(socket.username),1);
+        var leftUser = socket.username;
+        socket.broadcast.emit('user notification',{msg: 'lefted',name: socket.username});
+        //delete users[leftUser]; //users.splice(users.indexOf(socket.username),1);
+        userOnline.splice(userOnline.indexOf(userOnline.find(x=>x.username === data)),1);
         updateUsernames();
         connections.splice(connections.indexOf(socket),1);
         console.log('Disconnected: %s sockets connected', connections.length);
@@ -35,11 +46,13 @@ io.sockets.on('connection',function (socket) {
             if(spaceIndex !== -1){
                 var user = message.substring(0,spaceIndex);
                 message = message.substring(spaceIndex + 1);
-                console.log(users);
-                if(user in users){
-                    console.log(user in users);
-                    io.to(users[user]).emit('privatechat',{msg:message,name:user});
-                    console.log('private message start');
+                console.log(userOnline);
+                console.log(user in userOnline);
+                socket.sendTo = user.trim();
+                if(userOnline.find(x=>x.username === user) !== undefined){
+                    console.log(message +' ???? '+ user);
+                    var uid = userOnline.find(x=>x.username === user).userId;
+                    socket.to(uid).emit('private chat',{msg:message,name:user});
                 } else{
                     callback('User not valid');
                 }
@@ -52,21 +65,32 @@ io.sockets.on('connection',function (socket) {
     });
 
     //new user
-    socket.on('new user',function (data,callback) {
-
-        if(data in users){
-            console.log(data + '..');
-            callback(false);
+    socket.on('new user',function (uname,callback) {
+        if(uname.trim() ==''){
+            callback('Please enter valid name', false);
             return;
         }
-        callback(true);
-        socket.username = data;
-        users[socket.username] = data;        //users.push(socket.username);
+        // if(uname in users){
+        //     console.log(uname + '..');
+        //     callback(false);
+        //     return;
+        // }
+        if(userOnline.indexOf(userOnline.find(x=>x.username === uname)) != -1){
+            console.log(uname + '..');
+            callback('user already exist. try to another name',false);
+            return;
+        }
+
+        callback('success',true);
+        userOnline.push({'username': uname,'userId':socket.id});
+        socket.username = uname;
+        //users[socket.username] = uname;
         updateUsernames();
-        //io.broadcast.emit('')
+        socket.broadcast.emit('user notification',{msg: 'joined in this room',name: socket.username});
     });
-    function updateUsernames () {
-        io.sockets.emit('get users',Object.keys(users));
-    }
-});
+}
+function updateUsernames () {
+    io.sockets.emit('get users',userOnline);
+}
+
 

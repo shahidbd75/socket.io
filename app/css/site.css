@@ -1,0 +1,16 @@
+body {
+    margin:30px;
+}
+#messageArea{
+    display: none;
+}
+.private{
+    font-style: italic;
+    color: darkblue;
+}
+.error{
+    color:red;
+}
+.italic{
+    font-style: italic;
+}
